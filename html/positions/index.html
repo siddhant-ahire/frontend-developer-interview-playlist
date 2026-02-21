@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced CSS Position Playground</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+
+        .canvas-area {
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+            height: 600px;
+            overflow-y: auto;
+            position: relative;
+            scrollbar-width: thin;
+        }
+
+        .demo-container {
+            border: 4px dashed #94a3b8;
+            min-height: 400px;
+            margin: 40px;
+            background: rgba(255, 255, 255, 0.6);
+            position: relative; 
+            padding: 20px;
+            transition: border-color 0.3s;
+        }
+
+        .demo-container.is-context {
+            border-color: #3b82f6;
+            background: rgba(219, 234, 254, 0.4);
+        }
+
+        .box {
+            width: 120px;
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            border-radius: 12px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            text-align: center;
+            font-size: 0.875rem;
+            min-width: 60px;
+            min-height: 60px;
+        }
+
+        .box-static { background-color: #64748b; }
+        .box-target { 
+            background-color: #ef4444; 
+            border: 4px solid #991b1b;
+        }
+        .box-filler { background-color: #3b82f6; opacity: 0.4; height: 80px; }
+
+        /* The Ghost represents the original spot in the DOM flow */
+        #ghost {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border: 2px dashed #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 12px;
+            pointer-events: none;
+            display: none;
+            z-index: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ef4444;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
+        .controls-panel {
+            background: white;
+            border-left: 1px solid #e2e8f0;
+        }
+
+        .range-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .label-pill {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #e2e8f0;
+            margin-top: 4px;
+        }
+
+        /* Custom toggle switch styling */
+        .toggle-checkbox:checked {
+            background-color: #ef4444;
+            border-color: #ef4444;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-slate-900 text-white p-4 flex justify-between items-center shadow-md">
+        <div>
+            <h1 class="text-xl font-bold">CSS Position Masterclass</h1>
+            <p class="text-xs text-slate-400">Interactive Visualization Tool</p>
+        </div>
+        <div class="hidden sm:flex gap-4">
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                <span class="text-xs">Normal Flow</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                <span class="text-xs">Positioned Element</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <main class="flex-grow flex flex-col md:flex-row overflow-hidden">
+        
+        <!-- Viewport -->
+        <div class="flex-grow canvas-area p-8" id="viewport">
+            <div class="max-w-3xl mx-auto">
+                
+                <div class="demo-container" id="container">
+                    <!-- Ghost element remains in flow position if possible -->
+                    <div id="ghost">Reserved Space</div>
+
+                    <div class="box box-static mb-4">1. Static Box</div>
+                    
+                    <!-- The Target Box -->
+                    <div id="target" class="box box-target">
+                        <span>2. Target</span>
+                        <div id="z-indicator" class="label-pill">Z: Auto</div>
+                    </div>
+                    
+                    <div class="box box-filler mt-4">3. Static Box</div>
+                    <div class="box box-filler mt-4">4. Static Box</div>
+                </div>
+
+                <div class="h-96 w-full flex flex-col items-center justify-center text-slate-300 uppercase tracking-widest text-sm border-t border-slate-200 mt-10">
+                    <p>Scroll Down</p>
+                    <svg class="w-6 h-6 animate-bounce mt-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Controls -->
+        <aside class="w-full md:w-[400px] controls-panel overflow-y-auto p-6 shadow-xl">
+            <section class="mb-8">
+                <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Main Settings</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold mb-1">Position Type</label>
+                        <select id="posSelect" class="w-full p-2 border-2 border-slate-200 rounded-lg focus:border-blue-500 outline-none transition-all">
+                            <option value="static">static (Default)</option>
+                            <option value="relative">relative</option>
+                            <option value="absolute">absolute</option>
+                            <option value="fixed">fixed</option>
+                            <option value="sticky">sticky</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center justify-between p-3 bg-blue-50 rounded-xl border border-blue-100">
+                        <div class="text-xs">
+                            <span class="font-bold block">Container Context</span>
+                            <span class="text-slate-500">Affects 'absolute' positioning</span>
+                        </div>
+                        <button id="toggleParent" class="px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-blue-700">Relative</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="mb-8">
+                <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Offsets & Stacking</h2>
+                
+                <div class="range-grid">
+                    <!-- Top -->
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase">Top</label>
+                            <input type="checkbox" id="topEnable" checked class="w-3 h-3 accent-red-500">
+                        </div>
+                        <input type="range" id="topRange" min="-100" max="200" value="0" class="w-full accent-red-500">
+                        <div class="flex justify-between text-[10px] mt-1"><span>-100</span><span id="topVal" class="font-bold">0px</span><span>200</span></div>
+                    </div>
+                    <!-- Left -->
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase">Left</label>
+                            <input type="checkbox" id="leftEnable" checked class="w-3 h-3 accent-red-500">
+                        </div>
+                        <input type="range" id="leftRange" min="-100" max="200" value="0" class="w-full accent-red-500">
+                        <div class="flex justify-between text-[10px] mt-1"><span>-100</span><span id="leftVal" class="font-bold">0px</span><span>200</span></div>
+                    </div>
+                    <!-- Bottom -->
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase">Bottom</label>
+                            <input type="checkbox" id="bottomEnable" class="w-3 h-3 accent-red-500">
+                        </div>
+                        <input type="range" id="bottomRange" min="-100" max="200" value="0" class="w-full accent-red-500">
+                        <div class="flex justify-between text-[10px] mt-1"><span>-100</span><span id="bottomVal" class="font-bold">auto</span><span>200</span></div>
+                    </div>
+                    <!-- Right -->
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase">Right</label>
+                            <input type="checkbox" id="rightEnable" class="w-3 h-3 accent-red-500">
+                        </div>
+                        <input type="range" id="rightRange" min="-100" max="200" value="0" class="w-full accent-red-500">
+                        <div class="flex justify-between text-[10px] mt-1"><span>-100</span><span id="rightVal" class="font-bold">auto</span><span>200</span></div>
+                    </div>
+                </div>
+
+                <div class="mt-4 bg-slate-900 text-white p-3 rounded-lg flex items-center justify-between">
+                    <label class="text-xs font-bold uppercase text-slate-400">Z-Index</label>
+                    <div class="flex items-center gap-3">
+                        <button onclick="changeZ(-1)" class="w-6 h-6 bg-slate-700 rounded hover:bg-slate-600">-</button>
+                        <span id="zVal" class="font-mono text-yellow-400 w-4 text-center">0</span>
+                        <button onclick="changeZ(1)" class="w-6 h-6 bg-slate-700 rounded hover:bg-slate-600">+</button>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <div id="explanation" class="p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg text-sm mb-4">
+                    <!-- Dynamic Text -->
+                </div>
+
+                <div class="bg-slate-900 rounded-xl p-5 text-[11px] font-mono leading-relaxed shadow-inner">
+                    <p class="text-slate-500">// CSS Applied to .target</p>
+                    <p class="text-blue-300">.target {</p>
+                    <div class="pl-4 space-y-1">
+                        <p class="text-slate-500">position: <span id="outPos" class="text-yellow-400">static</span>;</p>
+                        <p id="outTopRow" class="text-slate-500">top: <span id="outTop" class="text-yellow-400">auto</span>;</p>
+                        <p id="outLeftRow" class="text-slate-500">left: <span id="outLeft" class="text-yellow-400">auto</span>;</p>
+                        <p id="outBottomRow" class="text-slate-500">bottom: <span id="outBottom" class="text-yellow-400">auto</span>;</p>
+                        <p id="outRightRow" class="text-slate-500">right: <span id="outRight" class="text-yellow-400">auto</span>;</p>
+                        <p id="outWidthRow" class="hidden text-slate-500">width: <span id="outWidth" class="text-yellow-400">120px</span>;</p>
+                        <p id="outHeightRow" class="hidden text-slate-500">height: <span id="outHeight" class="text-yellow-400">120px</span>;</p>
+                        <p class="text-slate-500">z-index: <span id="outZ" class="text-yellow-400">auto</span>;</p>
+                    </div>
+                    <p class="text-blue-300">}</p>
+                </div>
+                
+                <button id="resetBtn" class="w-full mt-4 py-2 border-2 border-slate-200 text-slate-500 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors uppercase tracking-widest">
+                    Reset Settings
+                </button>
+            </section>
+        </aside>
+    </main>
+
+    <script>
+        const target = document.getElementById('target');
+        const ghost = document.getElementById('ghost');
+        const container = document.getElementById('container');
+        const posSelect = document.getElementById('posSelect');
+        const zIndicator = document.getElementById('z-indicator');
+        const explanation = document.getElementById('explanation');
+        const toggleParent = document.getElementById('toggleParent');
+        const zValDisp = document.getElementById('zVal');
+        
+        // Inputs
+        const ranges = {
+            top: document.getElementById('topRange'),
+            left: document.getElementById('leftRange'),
+            bottom: document.getElementById('bottomRange'),
+            right: document.getElementById('rightRange')
+        };
+        const toggles = {
+            top: document.getElementById('topEnable'),
+            left: document.getElementById('leftEnable'),
+            bottom: document.getElementById('bottomEnable'),
+            right: document.getElementById('rightEnable')
+        };
+
+        // Output Display Elements
+        const outputs = {
+            pos: document.getElementById('outPos'),
+            top: document.getElementById('outTop'),
+            left: document.getElementById('outLeft'),
+            bottom: document.getElementById('outBottom'),
+            right: document.getElementById('outRight'),
+            width: document.getElementById('outWidth'),
+            height: document.getElementById('outHeight'),
+            z: document.getElementById('outZ'),
+            topVal: document.getElementById('topVal'),
+            leftVal: document.getElementById('leftVal'),
+            bottomVal: document.getElementById('bottomVal'),
+            rightVal: document.getElementById('rightVal')
+        };
+
+        let currentZ = 0;
+
+        const concepts = {
+            static: "<strong>Static:</strong> Offsets like <code>top</code> or <code>bottom</code> are completely ignored. The box stays exactly where the document flow puts it.",
+            relative: "<strong>Relative:</strong> Offsets move the box from its original position. Note: If both Top and Bottom are set, Top usually wins! To see Bottom work, uncheck Top.",
+            absolute: "<strong>Absolute:</strong> Removed from flow. <strong>Pro Tip:</strong> If you enable BOTH Top and Bottom, the box will <em>stretch</em> to fill the gap if height isn't fixed!",
+            fixed: "<strong>Fixed:</strong> Relative to the screen. Just like absolute, enabling opposite sides (like Left and Right) will cause the element to span the screen width.",
+            sticky: "<strong>Sticky:</strong> Stays in flow until its offset hits the viewport edge. Useful for headers that 'stick' as you scroll."
+        };
+
+        function changeZ(delta) {
+            currentZ += delta;
+            updateStyles();
+        }
+
+        function updateStyles() {
+            const pos = posSelect.value;
+            
+            // Determine active values
+            const valT = toggles.top.checked ? ranges.top.value + 'px' : 'auto';
+            const valL = toggles.left.checked ? ranges.left.value + 'px' : 'auto';
+            const valB = toggles.bottom.checked ? ranges.bottom.value + 'px' : 'auto';
+            const valR = toggles.right.checked ? ranges.right.value + 'px' : 'auto';
+
+            // Logic for "Stretching"
+            // In CSS, if both top and bottom are set on an absolute/fixed element, 
+            // the element stretches unless it has a fixed height.
+            const isStretchingV = (pos === 'absolute' || pos === 'fixed') && toggles.top.checked && toggles.bottom.checked;
+            const isStretchingH = (pos === 'absolute' || pos === 'fixed') && toggles.left.checked && toggles.right.checked;
+
+            target.style.position = pos;
+            target.style.top = valT;
+            target.style.left = valL;
+            target.style.bottom = valB;
+            target.style.right = valR;
+            
+            // Update stretching logic
+            target.style.height = isStretchingV ? 'auto' : '120px';
+            target.style.width = isStretchingH ? 'auto' : '120px';
+
+            if (pos === 'static') {
+                ghost.style.display = 'none';
+                target.style.zIndex = 'auto';
+                zIndicator.textContent = "Z: Ignored";
+            } else {
+                ghost.style.display = 'flex';
+                target.style.zIndex = currentZ;
+                zIndicator.textContent = `Z: ${currentZ}`;
+            }
+
+            // Update UI Labels
+            explanation.innerHTML = concepts[pos];
+            outputs.pos.textContent = pos;
+            outputs.top.textContent = valT;
+            outputs.left.textContent = valL;
+            outputs.bottom.textContent = valB;
+            outputs.right.textContent = valR;
+            outputs.z.textContent = pos === 'static' ? 'auto' : currentZ;
+            
+            outputs.topVal.textContent = valT;
+            outputs.leftVal.textContent = valL;
+            outputs.bottomVal.textContent = valB;
+            outputs.rightVal.textContent = valR;
+            
+            outputs.width.textContent = target.style.width;
+            outputs.height.textContent = target.style.height;
+            zValDisp.textContent = currentZ;
+
+            // Visibility of code rows
+            document.getElementById('outBottomRow').classList.toggle('hidden', !toggles.bottom.checked && pos === 'static');
+            document.getElementById('outRightRow').classList.toggle('hidden', !toggles.right.checked && pos === 'static');
+            document.getElementById('outWidthRow').classList.toggle('hidden', !isStretchingH);
+            document.getElementById('outHeightRow').classList.toggle('hidden', !isStretchingV);
+        }
+
+        // Event Listeners
+        posSelect.addEventListener('change', updateStyles);
+        Object.values(ranges).forEach(r => r.addEventListener('input', updateStyles));
+        Object.values(toggles).forEach(t => t.addEventListener('change', updateStyles));
+
+        toggleParent.addEventListener('click', () => {
+            const isRel = container.style.position === 'relative' || container.style.position === '';
+            if (isRel) {
+                container.style.position = 'static';
+                container.classList.remove('is-context');
+                toggleParent.textContent = 'Static';
+                toggleParent.classList.replace('bg-blue-600', 'bg-slate-400');
+            } else {
+                container.style.position = 'relative';
+                container.classList.add('is-context');
+                toggleParent.textContent = 'Relative';
+                toggleParent.classList.replace('bg-slate-400', 'bg-blue-600');
+            }
+            updateStyles();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            posSelect.value = 'static';
+            Object.values(ranges).forEach(r => r.value = 0);
+            toggles.top.checked = true;
+            toggles.left.checked = true;
+            toggles.bottom.checked = false;
+            toggles.right.checked = false;
+            currentZ = 0;
+            container.style.position = 'relative';
+            container.classList.add('is-context');
+            toggleParent.textContent = 'Relative';
+            toggleParent.classList.replace('bg-slate-400', 'bg-blue-600');
+            updateStyles();
+        });
+
+        // Init
+        updateStyles();
+    </script>
+</body>
+</html>
