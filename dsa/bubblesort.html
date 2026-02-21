@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bubble Sort Logic & Limits</title>
+    <style>
+        :root { --bg: #121212; --text: #e0e0e0; --accent: #00e676; --warning: #ff5252; --info: #40c4ff; }
+        body { font-family: 'Segoe UI', monospace; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        
+        /* Stats Dashboard */
+        .dashboard { display: flex; gap: 20px; background: #1e1e1e; padding: 20px; border-radius: 12px; border: 1px solid #333; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        .monitor { text-align: center; border-right: 1px solid #444; padding: 0 20px; }
+        .monitor:last-child { border-right: none; }
+        .label { font-size: 12px; color: #aaa; text-transform: uppercase; margin-bottom: 5px; }
+        .value { font-size: 24px; font-weight: bold; color: var(--accent); }
+        .math { font-size: 14px; color: var(--info); }
+
+        .workspace { display: flex; gap: 30px; width: 1000px; }
+        
+        /* Interactive Cards */
+        .array-zone { flex: 1.5; background: #1e1e1e; padding: 20px; border-radius: 12px; position: relative; }
+        .slots { display: flex; gap: 10px; justify-content: center; margin-top: 50px; }
+        .slot { width: 70px; height: 100px; border: 2px dashed #444; border-radius: 8px; display: flex; justify-content: center; align-items: center; position: relative; }
+        .card { width: 66px; height: 96px; background: white; color: #333; border-radius: 6px; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 20px; cursor: grab; position: absolute; z-index: 10; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+        .ptr { position: absolute; top: -45px; font-weight: bold; color: var(--warning); font-size: 16px; }
+
+        /* Code Panel */
+        .code-zone { flex: 1; background: #000; padding: 15px; border-radius: 8px; font-size: 14px; line-height: 1.6; }
+        .line { padding: 2px 10px; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+        .line:hover { background: #333; }
+        .line.active { background: #2c3e50; border-left: 4px solid var(--accent); }
+        .comment { color: #757575; font-style: italic; }
+        
+        .control-input { width: 50px; background: #333; border: 1px solid var(--info); color: white; border-radius: 4px; padding: 5px; font-size: 18px; text-align: center; }
+        .temp-area { margin-top: 40px; display: flex; flex-direction: column; align-items: center; }
+        .locked { filter: grayscale(1) opacity(0.5); border: 2px solid var(--accent) !important; }
+    </style>
+</head>
+<body>
+
+    <h2>Algorithm State & Limit Monitor</h2>
+
+    <div class="dashboard">
+        <div class="monitor">
+            <div class="label">Total Elements (n)</div>
+            <div class="value">5</div>
+        </div>
+        <div class="monitor">
+            <div class="label">Outer Limit (n - 1)</div>
+            <div class="value" id="limitN1" style="color:var(--info)">4</div>
+            <div class="math">Passes needed</div>
+        </div>
+        <div class="monitor">
+            <div class="label">Inner Limit (n - i - 1)</div>
+            <div class="value" id="limitNI1" style="color:var(--warning)">4</div>
+            <div class="math" id="mathNI1">5 - 0 - 1</div>
+        </div>
+        <div class="monitor" style="border:none">
+            <div class="label">Manual Controls</div>
+            <div style="display:flex; gap:10px;">
+                <div class="input-group">i: <input type="number" id="inpI" value="0" min="0" max="4" class="control-input" onchange="sync()"></div>
+                <div class="input-group">j: <input type="number" id="inpJ" value="0" min="0" max="4" class="control-input" onchange="sync()"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="workspace">
+        <div class="array-zone">
+            <div class="slots">
+                <div class="slot" id="s0" ondrop="drop(event)" ondragover="allowDrop(event)"><div class="card" draggable="true" ondragstart="drag(event)" id="c1">50</div></div>
+                <div class="slot" id="s1" ondrop="drop(event)" ondragover="allowDrop(event)"><div class="card" draggable="true" ondragstart="drag(event)" id="c2">10</div></div>
+                <div class="slot" id="s2" ondrop="drop(event)" ondragover="allowDrop(event)"><div class="card" draggable="true" ondragstart="drag(event)" id="c3">40</div></div>
+                <div class="slot" id="s3" ondrop="drop(event)" ondragover="allowDrop(event)"><div class="card" draggable="true" ondragstart="drag(event)" id="c4">20</div></div>
+                <div class="slot" id="s4" ondrop="drop(event)" ondragover="allowDrop(event)"><div class="card" draggable="true" ondragstart="drag(event)" id="c5">30</div></div>
+            </div>
+            
+            <div class="temp-area">
+                <div class="label" style="color:var(--accent)">TEMP STORAGE</div>
+                <div class="slot" id="sTemp" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            </div>
+        </div>
+
+        <div class="code-zone">
+            <div class="line" id="l1" onclick="hl(1)">for (int i = 0; i < <span class="valN1">4</span>; i++) {</div>
+            <div class="line" id="l2" onclick="hl(2)">&nbsp;&nbsp;for (int j = 0; j < <span class="valNI1">4</span>; j++) {</div>
+            <div class="line" id="l3" onclick="hl(3)">&nbsp;&nbsp;&nbsp;&nbsp;if (arr[j] > arr[j+1]) {</div>
+            <div class="line" id="l4" onclick="hl(4)">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;temp = arr[j];</div>
+            <div class="line" id="l5" onclick="hl(5)">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;arr[j] = arr[j+1];</div>
+            <div class="line" id="l6" onclick="hl(6)">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;arr[j+1] = temp;</div>
+            <div class="line" id="l7" onclick="hl(7)">&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+            <div class="line" id="l8" onclick="hl(8)">&nbsp;&nbsp;}</div>
+            <div class="line" id="l9" onclick="hl(9)">}</div>
+        </div>
+    </div>
+
+    <script>
+        const n = 5;
+        function sync() {
+            const i = parseInt(document.getElementById('inpI').value);
+            const j = parseInt(document.getElementById('inpJ').value);
+            const ni1 = n - i - 1;
+
+            // Update Math Display
+            document.getElementById('limitNI1').innerText = ni1;
+            document.getElementById('mathNI1').innerText = `${n} - ${i} - 1 = ${ni1}`;
+            document.querySelectorAll('.valNI1').forEach(el => el.innerText = ni1);
+            document.querySelectorAll('.valN1').forEach(el => el.innerText = n - 1);
+
+            // Update Pointer Arrows
+            document.querySelectorAll('.ptr').forEach(p => p.remove());
+            const slotJ = document.getElementById('s' + j);
+            const slotJ1 = document.getElementById('s' + (j + 1));
+            if(slotJ) slotJ.innerHTML += '<div class="ptr">j ↓</div>';
+            if(slotJ1) slotJ1.innerHTML += '<div class="ptr" style="color:var(--info); left:20px;">j+1 ↓</div>';
+
+            // Visually "Lock" sorted elements
+            for(let k=0; k<5; k++) {
+                const s = document.getElementById('s'+k);
+                s.classList.remove('locked');
+                if(k >= n-i) s.classList.add('locked');
+            }
+        }
+
+        function hl(num) {
+            document.querySelectorAll('.line').forEach(l => l.classList.remove('active'));
+            document.getElementById('l' + num).classList.add('active');
+        }
+
+        function allowDrop(ev) { ev.preventDefault(); }
+        function drag(ev) { ev.dataTransfer.setData("text", ev.target.id); }
+        function drop(ev) {
+            ev.preventDefault();
+            const data = ev.dataTransfer.getData("text");
+            if (!ev.target.querySelector('.card') && (ev.target.classList.contains('slot'))) {
+                ev.target.appendChild(document.getElementById(data));
+            }
+        }
+        sync();
+    </script>
+</body>
+</html>
